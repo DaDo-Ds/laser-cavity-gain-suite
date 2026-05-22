@@ -3,12 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laser Cavity Gain Suite</title>
-    <!-- Redirección automática en 1 segundo hacia la calculadora interactiva -->
-    <meta http-equiv="refresh" content="1;url=src/web/laser_calculator.html">
+    <title>Laser Cavity Gain Simulation Suite</title>
     <style>
         body {
-            font-family: 'Google Sans', Arial, sans-serif;
+            font-family: Arial, sans-serif;
             background-color: #f4f6f9;
             color: #333;
             display: flex;
@@ -24,38 +22,65 @@
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.05);
             max-width: 500px;
+            width: 90%;
         }
         h1 {
-            color: #0366d6;
+            color: #24292e;
             font-size: 24px;
             margin-bottom: 10px;
         }
         p {
-            color: #666;
+            color: #586069;
             font-size: 16px;
-            margin-bottom: 25px;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+        .actions {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        @media(min-width: 480px) {
+            .actions {
+                flex-direction: row;
+                justify-content: center;
+            }
         }
         .btn {
             display: inline-block;
-            background-color: #2ea44f;
-            color: white;
             text-decoration: none;
             padding: 12px 24px;
             border-radius: 6px;
             font-weight: bold;
-            font-size: 16px;
-            transition: background-color 0.2s;
+            font-size: 15px;
+            transition: background-color 0.2s, color 0.2s;
         }
-        .btn:hover {
+        .btn-calc {
+            background-color: #2ea44f;
+            color: white;
+            border: 1px solid #1b7c3a;
+        }
+        .btn-calc:hover {
             background-color: #2c974b;
+        }
+        .btn-repo {
+            background-color: #24292e;
+            color: white;
+            border: 1px solid #1b1f23;
+        }
+        .btn-repo:hover {
+            background-color: #2c3137;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Laser Cavity Gain Simulation Suite</h1>
-        <p>Redireccionando de forma automática a la aplicación web interactiva...</p>
-        <a class="btn" href="src/web/laser_calculator.html">Ingresar a la Calculadora</a>
+        <p>Seleccione una opción para comenzar a explorar los recursos del proyecto:</p>
+        <div class="actions">
+            <a class="btn btn-calc" href="src/web/laser_calculator.html">Abrir Calculadora Interactiva</a>
+            <a class="btn btn-repo" href="https://github.com/DaDo-Ds/laser-cavity-gain-suite">Ver Código en GitHub</a>
+        </div>
     </div>
 </body>
 </html>
