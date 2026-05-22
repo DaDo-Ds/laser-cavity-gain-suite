@@ -1,1 +1,1571 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LASER Cavity Calculator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;800&display=swap');
 
+  :root {
+    --bg:       #0a0e17;
+    --surface:  #111827;
+    --card:     #1a2235;
+    --border:   #1f3050;
+    --accent:   #00d4ff;
+    --accent2:  #ff6b35;
+    --green:    #00ff88;
+    --yellow:   #ffd60a;
+    --text:     #e2e8f0;
+    --muted:    #64748b;
+    --danger:   #ff4444;
+    --mono:     'JetBrains Mono', monospace;
+    --sans:     'Syne', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── GRID BACKGROUND ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: relative; z-index: 10;
+    background: linear-gradient(135deg, #0d1b2a 0%, #0a1628 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 64px;
+    box-shadow: 0 4px 24px rgba(0,212,255,0.08);
+  }
+  .logo {
+    font-family: var(--sans);
+    font-size: 1.2rem; font-weight: 800;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+  .logo span { color: var(--accent2); }
+  .header-right { display: flex; align-items: center; gap: 1rem; }
+
+  /* ── LANGUAGE SELECTOR ── */
+  .lang-btn {
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all .2s;
+    letter-spacing: 0.05em;
+  }
+  .lang-btn:hover, .lang-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0,212,255,0.08);
+  }
+
+  /* ── TABS ── */
+  .tabs {
+    position: relative; z-index: 10;
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    gap: 0;
+    overflow-x: auto;
+  }
+  .tab {
+    padding: 1rem 1.4rem;
+    font-size: 0.78rem;
+    font-family: var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all .2s;
+    background: none; border-top: none; border-left: none; border-right: none;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ── MAIN LAYOUT ── */
+  .main {
+    position: relative; z-index: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .card-title {
+    font-family: var(--sans);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1.2rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 0.6rem;
+  }
+  .card-title::before {
+    content: '//';
+    color: var(--muted);
+    font-size: 0.75rem;
+  }
+
+  /* ── GRID ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; }
+  @media(max-width:768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+  /* ── FORM ELEMENTS ── */
+  .field { margin-bottom: 1rem; }
+  label {
+    display: block;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.4rem;
+  }
+  input[type=number], select {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 0.9rem;
+    padding: 0.6rem 0.8rem;
+    border-radius: 6px;
+    outline: none;
+    transition: border-color .2s;
+    -moz-appearance: textfield;
+  }
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+  input[type=number]:focus, select:focus { border-color: var(--accent); }
+  select option { background: var(--surface); }
+
+  .unit {
+    font-size: 0.7rem; color: var(--muted);
+    margin-left: 0.4rem; font-style: italic;
+  }
+
+  /* ── PRESETS ── */
+  .preset-strip {
+    display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;
+  }
+  .preset-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    padding: 0.3rem 0.7rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all .15s;
+    letter-spacing: 0.05em;
+  }
+  .preset-btn:hover {
+    border-color: var(--accent2);
+    color: var(--accent2);
+  }
+
+  /* ── CALCULATE BUTTON ── */
+  .calc-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #0066ff, #00d4ff);
+    border: none;
+    color: #fff;
+    font-family: var(--sans);
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all .2s;
+    box-shadow: 0 4px 20px rgba(0,212,255,0.25);
+    margin-top: 0.5rem;
+  }
+  .calc-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(0,212,255,0.40);
+  }
+  .calc-btn:active { transform: translateY(0); }
+
+  /* ── RESULTS ── */
+  .result-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  .result-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    transition: border-color .3s;
+  }
+  .result-box.highlight { border-color: var(--accent); }
+  .result-box.warning   { border-color: var(--yellow); }
+  .result-box.danger    { border-color: var(--danger); }
+  .result-label {
+    font-size: 0.68rem; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted);
+    margin-bottom: 0.4rem;
+  }
+  .result-value {
+    font-family: var(--sans);
+    font-size: 1.6rem; font-weight: 800;
+    color: var(--accent);
+    line-height: 1.1;
+  }
+  .result-value.yellow { color: var(--yellow); }
+  .result-value.green  { color: var(--green); }
+  .result-value.red    { color: var(--danger); }
+  .result-unit {
+    font-size: 0.65rem; color: var(--muted);
+    margin-top: 0.2rem;
+  }
+
+  /* ── STATUS BAR ── */
+  .status-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+    margin-top: 1rem;
+    font-size: 0.82rem;
+    display: flex; align-items: center; gap: 0.8rem;
+  }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .status-dot.ok     { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .status-dot.warn   { background: var(--yellow); box-shadow: 0 0 8px var(--yellow); }
+  .status-dot.err    { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+  .status-dot.idle   { background: var(--muted); }
+
+  /* ── SERIES TABLE ── */
+  table {
+    width: 100%; border-collapse: collapse;
+    font-size: 0.8rem; margin-top: 0.5rem;
+  }
+  th {
+    background: var(--surface);
+    color: var(--muted);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    padding: 0.6rem 0.8rem;
+    text-align: right; font-size: 0.72rem;
+    text-transform: uppercase;
+  }
+  th:first-child { text-align: left; }
+  td {
+    padding: 0.5rem 0.8rem;
+    border-bottom: 1px solid var(--border);
+    text-align: right;
+    font-size: 0.8rem;
+  }
+  td:first-child { text-align: left; color: var(--muted); font-size: 0.72rem; }
+  tr:last-child td { border-bottom: none; }
+  tr.highlight-row td { color: var(--accent); font-weight: 600; }
+
+  /* ── CANVAS PLOT ── */
+  canvas {
+    width: 100%; max-width: 100%;
+    border-radius: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    display: block;
+  }
+
+  /* ── MANUAL / HELP ── */
+  .help-section { margin-bottom: 2rem; }
+  .help-section h3 {
+    font-family: var(--sans);
+    font-size: 1rem; font-weight: 700;
+    color: var(--accent2);
+    margin-bottom: 0.8rem;
+    letter-spacing: 0.04em;
+  }
+  .help-section p, .help-section li {
+    font-size: 0.82rem; line-height: 1.7;
+    color: #94a3b8; margin-bottom: 0.4rem;
+  }
+  .help-section ul { padding-left: 1.5rem; }
+  .formula-box {
+    background: var(--surface);
+    border-left: 3px solid var(--accent);
+    padding: 1rem 1.2rem;
+    border-radius: 0 8px 8px 0;
+    margin: 0.8rem 0;
+    font-size: 0.85rem;
+    color: var(--accent);
+    letter-spacing: 0.03em;
+  }
+  .kv-table { width: 100%; font-size: 0.78rem; }
+  .kv-table td { padding: 0.4rem 0.6rem; border-bottom: 1px solid var(--border); }
+  .kv-table td:first-child { color: var(--muted); width: 40%; }
+  .kv-table td:last-child { color: var(--text); }
+
+  /* ── SWEEP ── */
+  .sweep-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr auto;
+    gap: 0.8rem; align-items: end;
+  }
+  @media(max-width:768px) { .sweep-controls { grid-template-columns: 1fr 1fr; } }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: center;
+    padding: 2rem;
+    font-size: 0.7rem;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+    margin-top: 2rem;
+    position: relative; z-index: 1;
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+
+  /* ── TOOLTIP ── */
+  .tip {
+    display: inline-block;
+    width: 16px; height: 16px;
+    background: var(--muted);
+    color: var(--bg);
+    border-radius: 50%;
+    font-size: 0.65rem; font-weight: 700;
+    text-align: center; line-height: 16px;
+    cursor: help;
+    margin-left: 4px;
+    position: relative;
+  }
+  .tip:hover::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: 120%; left: 50%;
+    transform: translateX(-50%);
+    background: #1e293b;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.5rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    white-space: nowrap;
+    max-width: 260px;
+    white-space: normal;
+    z-index: 100;
+    pointer-events: none;
+    line-height: 1.5;
+  }
+
+  /* ── BEAM ANIMATION ── */
+  .beam-viz {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    height: 140px;
+    overflow: hidden;
+    margin-top: 1rem;
+  }
+  .beam-viz svg { width: 100%; height: 100%; }
+
+  /* ── MIRROR BADGE ── */
+  .mirror-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(0,212,255,0.08);
+    border: 1px solid rgba(0,212,255,0.2);
+    border-radius: 20px;
+    padding: 0.25rem 0.7rem;
+    font-size: 0.7rem;
+    color: var(--accent);
+    margin: 0.2rem;
+  }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
+
+  .tag-ok   { color: var(--green);  font-size: 0.72rem; }
+  .tag-warn { color: var(--yellow); font-size: 0.72rem; }
+  .tag-err  { color: var(--danger); font-size: 0.72rem; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════ HEADER ═══════════════════════════ -->
+<header>
+  <div class="logo">LASER<span>&middot;</span>CALC <span style="color:var(--muted);font-size:.7rem;font-weight:400;letter-spacing:0">v2.0</span></div>
+  <div class="header-right">
+    <button class="lang-btn active" onclick="setLang('es')">ES</button>
+    <button class="lang-btn" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" onclick="setLang('pt')">PT</button>
+  </div>
+</header>
+
+<!-- ═══════════════════════════ TABS ═══════════════════════════ -->
+<div class="tabs">
+  <button class="tab active" onclick="openTab('calc')"   id="tab-calc"  ></button>
+  <button class="tab"        onclick="openTab('sweep')"  id="tab-sweep" ></button>
+  <button class="tab"        onclick="openTab('series')" id="tab-series"></button>
+  <button class="tab"        onclick="openTab('manual')" id="tab-manual"></button>
+</div>
+
+<!-- ═══════════════════════════ MAIN ═══════════════════════════ -->
+<div class="main">
+
+<!-- ─────────── PANEL: CALCULADORA ─────────── -->
+<div id="panel-calc" class="panel active">
+
+  <div class="grid-2">
+    <!-- LEFT COL: INPUTS -->
+    <div>
+      <div class="card">
+        <div class="card-title" id="lbl-cavity-title"></div>
+
+        <div class="field">
+          <label id="lbl-L"></label>
+          <input type="number" id="inp-L" value="10" min="0.1" step="0.1">
+          <span class="unit">cm</span>
+        </div>
+
+        <div class="field">
+          <label id="lbl-lam"></label>
+          <input type="number" id="inp-lam" value="1064" min="100" step="1">
+          <span class="unit">nm</span>
+        </div>
+
+        <hr class="divider">
+
+        <div class="card-title" id="lbl-mirror-title"></div>
+
+        <div class="preset-strip" id="mirror-presets"></div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label id="lbl-R1"><span class="tip" data-tip="Espejo trasero, alta reflectancia (≈99-100%)">?</span></label>
+            <input type="number" id="inp-R1" value="99" min="0" max="100" step="0.1">
+            <span class="unit">%</span>
+          </div>
+          <div class="field">
+            <label id="lbl-R2"><span class="tip" data-tip="Acoplador de salida, transmite el haz útil (≈90-98%)">?</span></label>
+            <input type="number" id="inp-R2" value="95" min="0" max="100" step="0.1">
+            <span class="unit">%</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label id="lbl-losses"></label>
+          <input type="number" id="inp-loss" value="0" min="0" max="50" step="0.1">
+          <span class="unit">% / pass</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title" id="lbl-medium-title"></div>
+        <div class="preset-strip" id="medium-presets"></div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label id="lbl-n"></label>
+            <input type="number" id="inp-n" value="1.76" min="1" step="0.01">
+          </div>
+          <div class="field">
+            <label id="lbl-Lm"></label>
+            <input type="number" id="inp-Lm" value="10" min="0.1" step="0.1">
+            <span class="unit">cm</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="calc-btn" onclick="calculate()" id="btn-calc"></button>
+    </div>
+
+    <!-- RIGHT COL: RESULTS -->
+    <div>
+      <div class="card">
+        <div class="card-title" id="lbl-results-title"></div>
+
+        <div class="result-grid">
+          <div class="result-box highlight" id="box-alpha">
+            <div class="result-label" id="lbl-alpha-c"></div>
+            <div class="result-value" id="val-alpha">—</div>
+            <div class="result-unit">cm⁻¹</div>
+          </div>
+          <div class="result-box" id="box-error">
+            <div class="result-label" id="lbl-error"></div>
+            <div class="result-value" id="val-error">—</div>
+            <div class="result-unit">%</div>
+          </div>
+          <div class="result-box" id="box-x">
+            <div class="result-label" id="lbl-x"></div>
+            <div class="result-value" id="val-x">—</div>
+            <div class="result-unit">2αL</div>
+          </div>
+          <div class="result-box" id="box-roundtrip">
+            <div class="result-label" id="lbl-roundtrip"></div>
+            <div class="result-value" id="val-roundtrip">—</div>
+            <div class="result-unit">µm</div>
+          </div>
+          <div class="result-box" id="box-finesse">
+            <div class="result-label" id="lbl-finesse"></div>
+            <div class="result-value" id="val-finesse">—</div>
+            <div class="result-unit"></div>
+          </div>
+          <div class="result-box" id="box-fsr">
+            <div class="result-label" id="lbl-fsr"></div>
+            <div class="result-value" id="val-fsr">—</div>
+            <div class="result-unit">GHz</div>
+          </div>
+        </div>
+
+        <div class="status-bar" id="status-bar">
+          <div class="status-dot idle" id="status-dot"></div>
+          <span id="status-msg" style="color:var(--muted)">—</span>
+        </div>
+      </div>
+
+      <!-- BEAM VIZ -->
+      <div class="card">
+        <div class="card-title" id="lbl-viz-title"></div>
+        <div class="beam-viz" id="beam-viz">
+          <svg id="beam-svg" viewBox="0 0 600 140" preserveAspectRatio="xMidYMid meet">
+            <text x="300" y="75" text-anchor="middle" fill="#334155" font-size="14"
+              font-family="JetBrains Mono,monospace">— calcular primero —</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- APPROX VALIDITY -->
+      <div class="card">
+        <div class="card-title" id="lbl-validity-title"></div>
+        <canvas id="plot-canvas" height="180"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────── PANEL: BARRIDO ─────────── -->
+<div id="panel-sweep" class="panel">
+  <div class="card">
+    <div class="card-title" id="lbl-sweep-title"></div>
+    <div class="sweep-controls">
+      <div class="field">
+        <label id="lbl-sw-var"></label>
+        <select id="sw-var" onchange="updateSweepUI()">
+          <option value="L">L — <span id="sw-opt-L"></span></option>
+          <option value="R2">R₂ — <span id="sw-opt-R2"></span></option>
+          <option value="R1">R₁</option>
+        </select>
+      </div>
+      <div class="field">
+        <label id="lbl-sw-from"></label>
+        <input type="number" id="sw-from" value="1" step="0.5">
+      </div>
+      <div class="field">
+        <label id="lbl-sw-to"></label>
+        <input type="number" id="sw-to" value="30" step="0.5">
+      </div>
+      <div class="field">
+        <label id="lbl-sw-pts"></label>
+        <input type="number" id="sw-pts" value="80" min="5" max="300" step="1">
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button class="calc-btn" style="margin:0;width:auto;padding:.6rem 1.2rem" onclick="runSweep()" id="btn-sweep"></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <canvas id="sweep-canvas" height="320"></canvas>
+  </div>
+
+  <div class="card">
+    <div class="card-title" id="lbl-sweep-table-title"></div>
+    <div style="overflow-x:auto;max-height:280px;overflow-y:auto;">
+      <table id="sweep-table">
+        <thead><tr><th id="sw-th-var"></th><th>α_c (cm⁻¹)</th><th id="sw-th-err">Err %</th><th id="sw-th-status"></th></thead>
+        <tbody id="sweep-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────── PANEL: SERIES ─────────── -->
+<div id="panel-series" class="panel">
+  <div class="card">
+    <div class="card-title" id="lbl-series-title"></div>
+    <p id="lbl-series-desc" style="font-size:.82rem;color:#94a3b8;margin-bottom:1rem;line-height:1.6"></p>
+
+    <div class="grid-2">
+      <div>
+        <div class="field">
+          <label id="lbl-ser-alpha"></label>
+          <input type="number" id="ser-alpha" value="0.003" min="0.0001" step="0.0001">
+          <span class="unit">cm⁻¹</span>
+        </div>
+        <div class="field">
+          <label id="lbl-ser-L"></label>
+          <input type="number" id="ser-L" value="10" min="0.1" step="0.1">
+          <span class="unit">cm</span>
+        </div>
+        <div class="field">
+          <label id="lbl-ser-terms"></label>
+          <input type="number" id="ser-terms" value="6" min="1" max="12" step="1">
+        </div>
+        <button class="calc-btn" onclick="calcSeries()" id="btn-series"></button>
+      </div>
+      <div id="series-formula-box" style="display:flex;flex-direction:column;gap:.5rem">
+        <div class="formula-box" style="font-size:.75rem">
+          e<sup>-2αL</sup> = Σ (−2αL)ⁿ / n!
+        </div>
+        <div class="formula-box" style="font-size:.75rem;border-left-color:var(--accent2)">
+          ≈ 1 − 2αL &nbsp;[truncado, 1er orden]
+        </div>
+        <div class="formula-box" style="font-size:.75rem;border-left-color:var(--green)">
+          α_c = (1 − R₁R₂) / (2L)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" id="lbl-series-conv-title"></div>
+    <div style="overflow-x:auto">
+      <table id="series-table">
+        <thead>
+          <tr>
+            <th style="text-align:left" id="sh-n">n</th>
+            <th id="sh-term">Término</th>
+            <th id="sh-partial">Suma parcial</th>
+            <th id="sh-exact">Exacto</th>
+            <th id="sh-err">Error %</th>
+          </tr>
+        </thead>
+        <tbody id="series-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <canvas id="series-canvas" height="240"></canvas>
+  </div>
+</div>
+
+<!-- ─────────── PANEL: MANUAL ─────────── -->
+<div id="panel-manual" class="panel">
+
+  <div class="card">
+    <div class="card-title" id="lbl-man-title"></div>
+
+    <div class="help-section">
+      <h3 id="man-h1"></h3>
+      <p id="man-p1"></p>
+    </div>
+
+    <div class="help-section">
+      <h3 id="man-h2"></h3>
+      <div class="formula-box">φ_i · e<sup>2αL</sup> · R₁ · R₂ = φ_f</div>
+      <div class="formula-box" style="border-left-color:var(--accent2)">e<sup>−2αL</sup> = R₁ · R₂  &nbsp; (condición umbral)</div>
+      <div class="formula-box" style="border-left-color:var(--green)">α_c = (1 − R₁ R₂) / (2L)  &nbsp; [aprox. 1er orden]</div>
+    </div>
+
+    <div class="help-section">
+      <h3 id="man-h3"></h3>
+      <table class="kv-table">
+        <tbody id="man-params-tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="help-section">
+      <h3 id="man-h4"></h3>
+      <p id="man-p4a"></p>
+      <div class="formula-box">ε_trunc = (2αL)² / 2 &nbsp; | &nbsp; ε_rel ≈ αL</div>
+      <p id="man-p4b"></p>
+    </div>
+
+    <div class="help-section">
+      <h3 id="man-h5"></h3>
+      <div id="man-presets-list"></div>
+    </div>
+
+    <div class="help-section">
+      <h3 id="man-h6"></h3>
+      <p id="man-p6"></p>
+    </div>
+  </div>
+
+</div>
+</div><!-- /main -->
+
+<footer>
+  LASER Cavity Calculator &nbsp;·&nbsp;
+  Darío Ricardo de Santiago Sasinka &nbsp;·&nbsp;
+  UTN FRC — Ingeniería Metalúrgica &nbsp;·&nbsp;
+  <a href="https://doi.org/10.13140/RG.2.2.29126.18241" target="_blank">DOI 10.13140/RG.2.2.29126.18241</a> &nbsp;·&nbsp;
+  CC BY 4.0
+</footer>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  TRANSLATIONS
+// ═══════════════════════════════════════════════════════════════
+const LANG = {
+  es: {
+    tabs: ['Calculadora','Barrido','Series','Manual'],
+    'lbl-cavity-title':  'Parámetros de la cavidad',
+    'lbl-L':             'Longitud total de cavidad (L)',
+    'lbl-lam':           'Longitud de onda',
+    'lbl-mirror-title':  'Espejos',
+    'lbl-R1':            'R₁ — Espejo posterior',
+    'lbl-R2':            'R₂ — Acoplador de salida',
+    'lbl-losses':        'Pérdidas adicionales por paso',
+    'lbl-medium-title':  'Medio activo',
+    'lbl-n':             'Índice de refracción (n)',
+    'lbl-Lm':            'Longitud del medio activo (Lm)',
+    'btn-calc':          'CALCULAR',
+    'lbl-results-title': 'Resultados',
+    'lbl-alpha-c':       'Ganancia umbral αc',
+    'lbl-error':         'Error de truncamiento',
+    'lbl-x':             'Parámetro 2αL',
+    'lbl-roundtrip':     'Longitud óptica ida/vuelta',
+    'lbl-finesse':       'Finesse de cavidad',
+    'lbl-fsr':           'FSR (Free Spectral Range)',
+    'lbl-viz-title':     'Visualización de la cavidad',
+    'lbl-validity-title':'Validez de la aproximación lineal',
+    'lbl-sweep-title':   'Barrido de parámetros',
+    'lbl-sw-var':        'Variable a barrer',
+    'lbl-sw-from':       'Desde',
+    'lbl-sw-to':         'Hasta',
+    'lbl-sw-pts':        'Puntos',
+    'btn-sweep':         'BARRER',
+    'lbl-sweep-table-title': 'Tabla de resultados del barrido',
+    'sw-th-err':         'Error %',
+    'sw-th-status':      'Estado',
+    'lbl-series-title':  'Convergencia de la serie de Taylor',
+    'lbl-series-desc':   'Visualiza término a término cómo converge la serie de Maclaurin de e^(−2αL) hacia el valor exacto, y cuándo la aproximación lineal es válida.',
+    'lbl-ser-alpha':     'Ganancia α',
+    'lbl-ser-L':         'Longitud L',
+    'lbl-ser-terms':     'Número de términos',
+    'btn-series':        'CALCULAR SERIE',
+    'lbl-series-conv-title': 'Convergencia término a término',
+    'sh-n':'n', 'sh-term':'Término', 'sh-partial':'Suma parcial', 'sh-exact':'Exacto', 'sh-err':'Error %',
+    'lbl-man-title':     'Manual de usuario',
+    'man-h1': '1. Qué calcula esta herramienta',
+    'man-p1': 'LASER·CALC resuelve la condición de umbral de una cavidad Fabry-Pérot lineal. Dado un juego de espejos y una longitud de cavidad, determina la ganancia mínima por unidad de longitud (αc) que el medio activo debe proveer para que el láser comience a oscilar. La ganancia se obtiene mediante la aproximación en serie de Taylor de la función exponencial, con análisis cuantitativo del error de truncamiento.',
+    'man-h2': '2. Base teórica',
+    'man-h3': '3. Parámetros de entrada',
+    'man-params-tbody': [
+      ['L [cm]','Longitud total de la cavidad resonante.'],
+      ['λ [nm]','Longitud de onda de operación (afecta FSR y finesse).'],
+      ['R₁ [%]','Reflectividad del espejo posterior (alta reflectancia, idealmente 100%).'],
+      ['R₂ [%]','Reflectividad del acoplador de salida (transmite el haz útil).'],
+      ['Pérdidas [%]','Pérdidas internas adicionales por paso: absorción, dispersión, etc.'],
+      ['n','Índice de refracción del medio activo.'],
+      ['Lm [cm]','Longitud física del medio activo dentro de la cavidad.'],
+    ],
+    'man-h4': '4. Error de truncamiento',
+    'man-p4a': 'La aproximación lineal e^{−x} ≈ 1 − x es válida cuando x = 2αL ≪ 1. El error dominante es el término cuadrático:',
+    'man-p4b': 'Para x < 0.1 el error es menor al 0.5%. Para x > 0.2 se recomienda usar la solución cuadrática o la ecuación trascendental exacta.',
+    'man-h5': '5. Presets disponibles',
+    'man-h6': '6. Pestañas',
+    'man-p6': '• Calculadora: ingreso de parámetros y resultado único.\n• Barrido: variación de un parámetro en un rango, con gráfico y tabla.\n• Series: visualización término a término de la convergencia de la serie de Taylor.\n• Manual: esta página.',
+    'status-ok':  '✓ Aproximación lineal válida (2αL = {x:.4f} ≪ 1, error ≈ {e:.3f}%)',
+    'status-warn':'⚠ Aproximación marginal (2αL = {x:.4f}, error ≈ {e:.2f}%). Considerar término cuadrático.',
+    'status-err': '✗ Aproximación inválida (2αL = {x:.4f} ≥ 1). Usar ecuación exacta.',
+    'sw-opt-L':   'Longitud de cavidad',
+    'sw-opt-R2':  'Reflectividad R₂',
+    'sw-th-var':  'Variable',
+    mirrors: {
+      'Nd:YAG HR/OC (1064nm)': [99, 95],
+      'CO₂ Metal Cut':         [99.5, 92],
+      'HeNe Lab':              [99.9, 98],
+      'Diodo VCSEL':           [99, 99.5],
+      'Ruby pulsado':          [100, 70],
+      'Ti:Zafiro (fs)':        [99.9, 90],
+    },
+    media: {
+      'Nd:YAG (cristal)':  [1.82, 10],
+      'CO₂ (gas, 10bar)':  [1.0003, 50],
+      'HeNe (gas)':        [1.0001, 20],
+      'Er:vidrio':         [1.53, 8],
+      'Ti:Zafiro':         [1.76, 10],
+      'Diodo GaAs':        [3.6, 0.03],
+    },
+  },
+  en: {
+    tabs: ['Calculator','Parameter Sweep','Taylor Series','Help Manual'],
+    'lbl-cavity-title':  'Cavity parameters',
+    'lbl-L':             'Total cavity length (L)',
+    'lbl-lam':           'Wavelength',
+    'lbl-mirror-title':  'Mirrors',
+    'lbl-R1':            'R₁ — High-reflectance mirror',
+    'lbl-R2':            'R₂ — Output coupler',
+    'lbl-losses':        'Additional internal losses per pass',
+    'lbl-medium-title':  'Gain medium',
+    'lbl-n':             'Refractive index (n)',
+    'lbl-Lm':            'Active medium length (Lm)',
+    'btn-calc':          'CALCULATE',
+    'lbl-results-title': 'Results',
+    'lbl-alpha-c':       'Threshold gain αc',
+    'lbl-error':         'Truncation error',
+    'lbl-x':             'Parameter 2αL',
+    'lbl-roundtrip':     'Round-trip optical path',
+    'lbl-finesse':       'Cavity finesse',
+    'lbl-fsr':           'Free Spectral Range',
+    'lbl-viz-title':     'Cavity visualization',
+    'lbl-validity-title':'Linear approximation validity',
+    'lbl-sweep-title':   'Parameter sweep',
+    'lbl-sw-var':        'Variable to sweep',
+    'lbl-sw-from':       'From',
+    'lbl-sw-to':         'To',
+    'lbl-sw-pts':        'Points',
+    'btn-sweep':         'RUN SWEEP',
+    'lbl-sweep-table-title': 'Sweep results table',
+    'sw-th-err':         'Error %',
+    'sw-th-status':      'Status',
+    'lbl-series-title':  'Taylor series convergence',
+    'lbl-series-desc':   'Visualize term-by-term how the Maclaurin series of e^(−2αL) converges to the exact value, and when the linear approximation is valid.',
+    'lbl-ser-alpha':     'Gain α',
+    'lbl-ser-L':         'Length L',
+    'lbl-ser-terms':     'Number of terms',
+    'btn-series':        'COMPUTE SERIES',
+    'lbl-series-conv-title': 'Term-by-term convergence',
+    'sh-n':'n', 'sh-term':'Term', 'sh-partial':'Partial sum', 'sh-exact':'Exact', 'sh-err':'Error %',
+    'lbl-man-title':     'User manual',
+    'man-h1': '1. What this tool calculates',
+    'man-p1': 'LASER·CALC solves the threshold condition for a linear Fabry-Pérot cavity. Given a mirror set and cavity length, it determines the minimum gain per unit length (αc) the active medium must provide for the laser to start oscillating. The gain is obtained via the Taylor series approximation of the exponential function, with quantitative truncation error analysis.',
+    'man-h2': '2. Theoretical background',
+    'man-h3': '3. Input parameters',
+    'man-params-tbody': [
+      ['L [cm]','Total length of the resonant cavity.'],
+      ['λ [nm]','Operating wavelength (affects FSR and finesse).'],
+      ['R₁ [%]','Reflectivity of the high-reflectance back mirror (ideally 100%).'],
+      ['R₂ [%]','Reflectivity of the output coupler (transmits the useful beam).'],
+      ['Losses [%]','Additional internal losses per pass: absorption, scattering, etc.'],
+      ['n','Refractive index of the active medium.'],
+      ['Lm [cm]','Physical length of the active medium inside the cavity.'],
+    ],
+    'man-h4': '4. Truncation error',
+    'man-p4a': 'The linear approximation e^{−x} ≈ 1 − x is valid when x = 2αL ≪ 1. The dominant error is the quadratic term:',
+    'man-p4b': 'For x < 0.1 the error is below 0.5%. For x > 0.2 it is recommended to use the quadratic solution or the exact transcendental equation.',
+    'man-h5': '5. Available presets',
+    'man-h6': '6. Tabs',
+    'man-p6': '• Calculator: parameter entry and single-point result.\n• Sweep: vary one parameter over a range, with chart and table.\n• Series: term-by-term visualization of Taylor series convergence.\n• Manual: this page.',
+    'status-ok':  '✓ Linear approx. valid (2αL = {x:.4f} ≪ 1, error ≈ {e:.3f}%)',
+    'status-warn':'⚠ Marginal approximation (2αL = {x:.4f}, error ≈ {e:.2f}%). Consider quadratic term.',
+    'status-err': '✗ Approximation invalid (2αL = {x:.4f} ≥ 1). Use exact equation.',
+    'sw-opt-L':   'Cavity length',
+    'sw-opt-R2':  'Reflectivity R₂',
+    'sw-th-var':  'Variable',
+    mirrors: {
+      'Nd:YAG HR/OC (1064nm)': [99, 95],
+      'CO₂ Metal Cut':         [99.5, 92],
+      'HeNe Lab':              [99.9, 98],
+      'Diode VCSEL':           [99, 99.5],
+      'Pulsed Ruby':           [100, 70],
+      'Ti:Sapphire (fs)':      [99.9, 90],
+    },
+    media: {
+      'Nd:YAG (crystal)':  [1.82, 10],
+      'CO₂ (gas, 10bar)':  [1.0003, 50],
+      'HeNe (gas)':        [1.0001, 20],
+      'Er:glass':          [1.53, 8],
+      'Ti:Sapphire':       [1.76, 10],
+      'GaAs Diode':        [3.6, 0.03],
+    },
+  },
+  pt: {
+    tabs: ['Calculadora','Varredura','Séries','Manual'],
+    'lbl-cavity-title':  'Parâmetros da cavidade',
+    'lbl-L':             'Comprimento total da cavidade (L)',
+    'lbl-lam':           'Comprimento de onda',
+    'lbl-mirror-title':  'Espelhos',
+    'lbl-R1':            'R₁ — Espelho posterior',
+    'lbl-R2':            'R₂ — Acoplador de saída',
+    'lbl-losses':        'Perdas internas adicionais por passo',
+    'lbl-medium-title':  'Meio ativo',
+    'lbl-n':             'Índice de refração (n)',
+    'lbl-Lm':            'Comprimento do meio ativo (Lm)',
+    'btn-calc':          'CALCULAR',
+    'lbl-results-title': 'Resultados',
+    'lbl-alpha-c':       'Ganho limiar αc',
+    'lbl-error':         'Erro de truncamento',
+    'lbl-x':             'Parâmetro 2αL',
+    'lbl-roundtrip':     'Comprimento óptico ida e volta',
+    'lbl-finesse':       'Finesse da cavidade',
+    'lbl-fsr':           'FSR (Free Spectral Range)',
+    'lbl-viz-title':     'Visualização da cavidade',
+    'lbl-validity-title':'Validade da aproximação linear',
+    'lbl-sweep-title':   'Varredura de parâmetros',
+    'lbl-sw-var':        'Variável a varrer',
+    'lbl-sw-from':       'De',
+    'lbl-sw-to':         'Até',
+    'lbl-sw-pts':        'Pontos',
+    'btn-sweep':         'VARRER',
+    'lbl-sweep-table-title': 'Tabela de resultados',
+    'sw-th-err':         'Erro %',
+    'sw-th-status':      'Status',
+    'lbl-series-title':  'Convergência da série de Taylor',
+    'lbl-series-desc':   'Visualize termo a termo como a série de Maclaurin de e^(−2αL) converge para o valor exato, e quando a aproximação linear é válida.',
+    'lbl-ser-alpha':     'Ganho α',
+    'lbl-ser-L':         'Comprimento L',
+    'lbl-ser-terms':     'Número de termos',
+    'btn-series':        'CALCULAR SÉRIE',
+    'lbl-series-conv-title': 'Convergência termo a termo',
+    'sh-n':'n', 'sh-term':'Termo', 'sh-partial':'Soma parcial', 'sh-exact':'Exato', 'sh-err':'Erro %',
+    'lbl-man-title':     'Manual do usuário',
+    'man-h1': '1. O que esta ferramenta calcula',
+    'man-p1': 'LASER·CALC resolve a condição de limiar de uma cavidade Fabry-Pérot linear. Dado um conjunto de espelhos e um comprimento de cavidade, determina o ganho mínimo por unidade de comprimento (αc) que o meio ativo deve fornecer para o laser começar a oscilar.',
+    'man-h2': '2. Base teórica',
+    'man-h3': '3. Parâmetros de entrada',
+    'man-params-tbody': [
+      ['L [cm]','Comprimento total da cavidade ressonante.'],
+      ['λ [nm]','Comprimento de onda de operação.'],
+      ['R₁ [%]','Refletividade do espelho posterior.'],
+      ['R₂ [%]','Refletividade do acoplador de saída.'],
+      ['Perdas [%]','Perdas internas adicionais por passo.'],
+      ['n','Índice de refração do meio ativo.'],
+      ['Lm [cm]','Comprimento físico do meio ativo.'],
+    ],
+    'man-h4': '4. Erro de truncamento',
+    'man-p4a': 'A aproximação linear é válida quando x = 2αL ≪ 1. O erro dominante é o termo quadrático:',
+    'man-p4b': 'Para x < 0.1 o erro é menor que 0.5%. Para x > 0.2 recomenda-se usar a equação exata.',
+    'man-h5': '5. Presets disponíveis',
+    'man-h6': '6. Abas',
+    'man-p6': '• Calculadora: entrada de parâmetros e resultado.\n• Varredura: variação de um parâmetro em um intervalo.\n• Séries: visualização da convergência da série de Taylor.\n• Manual: esta página.',
+    'status-ok':  '✓ Aprox. linear válida (2αL = {x:.4f} ≪ 1, erro ≈ {e:.3f}%)',
+    'status-warn':'⚠ Aprox. marginal (2αL = {x:.4f}, erro ≈ {e:.2f}%). Considerar termo quadrático.',
+    'status-err': '✗ Aprox. inválida (2αL = {x:.4f} ≥ 1). Usar equação exata.',
+    'sw-opt-L':   'Comprimento de cavidade',
+    'sw-opt-R2':  'Refletividade R₂',
+    'sw-th-var':  'Variável',
+    mirrors: {
+      'Nd:YAG HR/OC (1064nm)': [99, 95],
+      'CO₂ Corte Metal':       [99.5, 92],
+      'HeNe Lab':              [99.9, 98],
+      'Diodo VCSEL':           [99, 99.5],
+      'Rubi pulsado':          [100, 70],
+      'Ti:Safira (fs)':        [99.9, 90],
+    },
+    media: {
+      'Nd:YAG (cristal)':  [1.82, 10],
+      'CO₂ (gás)':         [1.0003, 50],
+      'HeNe (gás)':        [1.0001, 20],
+      'Er:vidro':          [1.53, 8],
+      'Ti:Safira':         [1.76, 10],
+      'Diodo GaAs':        [3.6, 0.03],
+    },
+  }
+};
+
+let currentLang = 'es';
+
+function t(key){ return LANG[currentLang][key] || LANG['es'][key] || key; }
+
+function setLang(l){
+  currentLang = l;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.textContent===l.toUpperCase()));
+  applyTranslations();
+}
+
+function applyTranslations(){
+  const L = LANG[currentLang];
+  // tabs
+  const tabIds = ['tab-calc','tab-sweep','tab-series','tab-manual'];
+  L.tabs.forEach((txt,i) => { const el=document.getElementById(tabIds[i]); if(el) el.textContent=txt; });
+  // simple text fields
+  const simple = [
+    'lbl-cavity-title','lbl-L','lbl-lam','lbl-mirror-title','lbl-R1','lbl-R2',
+    'lbl-losses','lbl-medium-title','lbl-n','lbl-Lm','btn-calc',
+    'lbl-results-title','lbl-alpha-c','lbl-error','lbl-x','lbl-roundtrip',
+    'lbl-finesse','lbl-fsr','lbl-viz-title','lbl-validity-title',
+    'lbl-sweep-title','lbl-sw-var','lbl-sw-from','lbl-sw-to','lbl-sw-pts','btn-sweep',
+    'lbl-sweep-table-title','sw-th-err','sw-th-status',
+    'lbl-series-title','lbl-series-desc','lbl-ser-alpha','lbl-ser-L','lbl-ser-terms','btn-series',
+    'lbl-series-conv-title','sh-n','sh-term','sh-partial','sh-exact','sh-err',
+    'lbl-man-title','man-h1','man-p1','man-h2','man-h3','man-h4','man-p4a','man-p4b',
+    'man-h5','man-h6','man-p6',
+  ];
+  simple.forEach(id => {
+    const el = document.getElementById(id);
+    if(el && typeof L[id]==='string') el.textContent = L[id];
+  });
+  // sweep option labels
+  ['sw-opt-L','sw-opt-R2'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.textContent = L[id]||'';
+  });
+  document.getElementById('sw-th-var').textContent = L['sw-th-var']||'';
+  // params table
+  const tbody = document.getElementById('man-params-tbody');
+  if(tbody && L['man-params-tbody']){
+    tbody.innerHTML = L['man-params-tbody'].map(([k,v])=>
+      `<tr><td>${k}</td><td>${v}</td></tr>`).join('');
+  }
+  // mirrors presets
+  buildPresets();
+  // manual presets list
+  buildManualPresets();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PRESETS
+// ═══════════════════════════════════════════════════════════════
+function buildPresets(){
+  const mStrip = document.getElementById('mirror-presets');
+  const medStrip = document.getElementById('medium-presets');
+  const mirrors = LANG[currentLang].mirrors;
+  const media   = LANG[currentLang].media;
+
+  mStrip.innerHTML = Object.entries(mirrors).map(([name,[r1,r2]])=>
+    `<button class="preset-btn" onclick="applyMirror(${r1},${r2})">${name}</button>`
+  ).join('');
+
+  medStrip.innerHTML = Object.entries(media).map(([name,[n,lm]])=>
+    `<button class="preset-btn" onclick="applyMedium(${n},${lm})">${name}</button>`
+  ).join('');
+}
+
+function buildManualPresets(){
+  const el = document.getElementById('man-presets-list');
+  const mirrors = LANG[currentLang].mirrors;
+  const media   = LANG[currentLang].media;
+  el.innerHTML =
+    '<p style="font-size:.78rem;color:#94a3b8;margin-bottom:.5rem"><strong style="color:var(--accent)">Espejos / Mirrors:</strong></p>' +
+    Object.entries(mirrors).map(([name,[r1,r2]])=>
+      `<span class="mirror-badge">R₁=${r1}% R₂=${r2}%&nbsp; ${name}</span>`
+    ).join('') +
+    '<p style="font-size:.78rem;color:#94a3b8;margin:.8rem 0 .5rem"><strong style="color:var(--accent2)">Medios activos / Media:</strong></p>' +
+    Object.entries(media).map(([name,[n,lm]])=>
+      `<span class="mirror-badge" style="border-color:rgba(255,107,53,.3);color:var(--accent2)">n=${n} Lm=${lm}cm&nbsp; ${name}</span>`
+    ).join('');
+}
+
+function applyMirror(r1,r2){
+  document.getElementById('inp-R1').value = r1;
+  document.getElementById('inp-R2').value = r2;
+  calculate(); // recalcular automáticamente
+}
+function applyMedium(n,lm){
+  document.getElementById('inp-n').value  = n;
+  document.getElementById('inp-Lm').value = lm;
+  calculate();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  CORE PHYSICS (CORREGIDO)
+// ═══════════════════════════════════════════════════════════════
+const C = 2.998e10; // cm/s
+
+function calcThreshold(L, R1, R2, lossPerPass){
+  const loss = lossPerPass / 100;
+  const r1 = R1 * (1 - loss);
+  const r2 = R2 * (1 - loss);
+  const product = r1 * r2;
+  // Aproximación lineal (Taylor 1er orden) consistente con pérdidas
+  const approxAlpha = (1 - product) / (2 * L);
+  // Solución exacta (trascendental)
+  const exactAlpha = -Math.log(product) / (2 * L);
+  const x = 2 * approxAlpha * L;
+  const exactVal = Math.exp(-x);
+  const approxVal = 1 - x;
+  const relErr = Math.abs(exactVal - approxVal) / exactVal * 100;
+  const truncErr = x * x / 2;
+  return { approxAlpha, exactAlpha, x, relErr, truncErr };
+}
+
+function calcFSR(L, n){
+  return C / (2 * n * L * 1e9);  // GHz
+}
+
+function calcFinesse(R1, R2){
+  const producto = R1 * R2;
+  if (producto >= 1.0) return Infinity;
+  return Math.PI * Math.sqrt(producto) / (1 - producto);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  CALCULATE (single point)
+// ═══════════════════════════════════════════════════════════════
+function calculate(){
+  const L    = parseFloat(document.getElementById('inp-L').value);
+  const lam  = parseFloat(document.getElementById('inp-lam').value);
+  const R1   = parseFloat(document.getElementById('inp-R1').value) / 100;
+  const R2   = parseFloat(document.getElementById('inp-R2').value) / 100;
+  const loss = parseFloat(document.getElementById('inp-loss').value);
+  const n    = parseFloat(document.getElementById('inp-n').value);
+  const Lm   = parseFloat(document.getElementById('inp-Lm').value);
+
+  if([L,lam,R1,R2,n,Lm].some(v=>isNaN(v)||v<=0)){
+    alert('Parámetros inválidos'); return;
+  }
+
+  const res = calcThreshold(L, R1, R2, loss);
+  const fsr = calcFSR(L, n);
+  const finesse = calcFinesse(R1, R2);
+  const optLen = 2 * n * L;
+
+  setResult('val-alpha', res.approxAlpha.toExponential(4), 'highlight');
+  setResult('val-error', res.relErr.toFixed(3),
+            res.x < 0.1 ? 'green' : res.x < 0.5 ? 'yellow' : 'red');
+  setResult('val-x', res.x.toFixed(4),
+            res.x < 0.1 ? 'green' : res.x < 0.5 ? 'yellow' : 'red');
+  setResult('val-roundtrip', (optLen * 1e4).toFixed(1));
+  setResult('val-finesse', finesse === Infinity ? '∞' : finesse.toFixed(1));
+  setResult('val-fsr', fsr.toFixed(3));
+
+  const tmpl = t( res.x < 0.1 ? 'status-ok' : res.x < 1 ? 'status-warn' : 'status-err' );
+  const msg  = tmpl.replace('{x:.4f}', res.x.toFixed(4))
+                   .replace('{e:.3f}', res.relErr.toFixed(3))
+                   .replace('{e:.2f}', res.relErr.toFixed(2));
+  const dot  = document.getElementById('status-dot');
+  const cls  = res.x < 0.1 ? 'ok' : res.x < 1 ? 'warn' : 'err';
+  dot.className = 'status-dot ' + cls;
+  document.getElementById('status-msg').textContent = msg;
+  document.getElementById('status-msg').style.color = cls==='ok'?'var(--green)':cls==='warn'?'var(--yellow)':'var(--danger)';
+
+  drawBeam(L, n, R1, R2, res.approxAlpha);
+  drawValidityPlot(res.x);
+}
+
+function setResult(id, val, colorClass){
+  const el = document.getElementById(id);
+  el.textContent = val;
+  el.className = 'result-value' + (colorClass ? ' '+colorClass : '');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  BEAM SVG VISUALIZATION
+// ═══════════════════════════════════════════════════════════════
+function drawBeam(L, n, R1, R2, alpha){
+  const svg = document.getElementById('beam-svg');
+  const w = 600, h = 140;
+  const ml = 60, mr = 60, mt = 30, mb = 30;
+  const cw = w - ml - mr, ch = h - mt - mb;
+  const cy = mt + ch/2;
+  const x1 = ml, x2 = w - mr;
+
+  const r1pct = (R1*100).toFixed(1), r2pct = (R2*100).toFixed(1);
+  const gain  = (alpha * 100).toFixed(3);
+
+  svg.innerHTML = `
+    <rect x="${x1-6}" y="${mt}" width="6" height="${ch}" fill="#334155" rx="2"/>
+    <rect x="${x1-6}" y="${mt}" width="6" height="${ch}" fill="url(#grad1)" rx="2"/>
+    <text x="${x1-8}" y="${cy}" fill="#00d4ff" font-size="11" font-family="JetBrains Mono" text-anchor="end">R₁=${r1pct}%</text>
+    <rect x="${x2}" y="${mt}" width="6" height="${ch}" fill="#334155" rx="2"/>
+    <rect x="${x2}" y="${mt}" width="6" height="${ch}" fill="url(#grad2)" rx="2" opacity=".8"/>
+    <text x="${x2+14}" y="${cy}" fill="#00d4ff" font-size="11" font-family="JetBrains Mono">R₂=${r2pct}%</text>
+    <rect x="${x1}" y="${mt+6}" width="${cw}" height="${ch-12}" fill="rgba(0,200,100,0.07)" rx="3" stroke="rgba(0,200,100,0.2)" stroke-width="1"/>
+    <text x="${x1+cw/2}" y="${mt+ch/2+4}" fill="rgba(0,255,136,0.7)" font-size="11" font-family="JetBrains Mono" text-anchor="middle">α = ${alpha.toExponential(3)} cm⁻¹ | n=${n}</text>
+    <line x1="${x1}" y1="${cy-10}" x2="${x2}" y2="${cy-10}" stroke="#00d4ff" stroke-width="1.5" stroke-dasharray="4 3" opacity=".8"/>
+    <polygon points="${x2-6},${cy-10} ${x2-12},${cy-13} ${x2-12},${cy-7}" fill="#00d4ff" opacity=".8"/>
+    <line x1="${x2}" y1="${cy+10}" x2="${x1}" y2="${cy+10}" stroke="#ff6b35" stroke-width="1.5" stroke-dasharray="4 3" opacity=".8"/>
+    <polygon points="${x1+6},${cy+10} ${x1+12},${cy+13} ${x1+12},${cy+7}" fill="#ff6b35" opacity=".8"/>
+    <line x1="${x2+6}" y1="${cy}" x2="${x2+40}" y2="${cy}" stroke="#ffd60a" stroke-width="2"/>
+    <polygon points="${x2+40},${cy} ${x2+32},${cy-4} ${x2+32},${cy+4}" fill="#ffd60a"/>
+    <text x="${x2+48}" y="${cy+4}" fill="#ffd60a" font-size="10" font-family="JetBrains Mono">haz</text>
+    <line x1="${x1}" y1="${h-10}" x2="${x2}" y2="${h-10}" stroke="#475569" stroke-width="1"/>
+    <text x="${x1+cw/2}" y="${h-2}" fill="#475569" font-size="10" font-family="JetBrains Mono" text-anchor="middle">L = ${L} cm</text>
+    <defs>
+      <linearGradient id="grad1" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#00d4ff" stop-opacity=".8"/>
+        <stop offset="100%" stop-color="#0066ff" stop-opacity=".4"/>
+      </linearGradient>
+      <linearGradient id="grad2" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#0066ff" stop-opacity=".4"/>
+        <stop offset="100%" stop-color="#00d4ff" stop-opacity=".8"/>
+      </linearGradient>
+    </defs>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  VALIDITY PLOT (Canvas)
+// ═══════════════════════════════════════════════════════════════
+function drawValidityPlot(currentX){
+  const canvas = document.getElementById('plot-canvas');
+  const ctx    = canvas.getContext('2d');
+  const W = canvas.offsetWidth || 600;
+  canvas.width  = W * devicePixelRatio;
+  canvas.height = 180 * devicePixelRatio;
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+  const w = W, h = 180;
+
+  const pl=50, pr=20, pt=20, pb=40;
+  const cw=w-pl-pr, ch=h-pt-pb;
+
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle='#111827'; ctx.fillRect(0,0,w,h);
+
+  ctx.strokeStyle='#1f3050'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(pl,pt); ctx.lineTo(pl,pt+ch); ctx.lineTo(pl+cw,pt+ch); ctx.stroke();
+
+  for(let i=0;i<=4;i++){
+    const y = pt + ch - (ch * i/4);
+    ctx.strokeStyle='rgba(31,48,80,0.6)';
+    ctx.beginPath(); ctx.moveTo(pl,y); ctx.lineTo(pl+cw,y); ctx.stroke();
+    ctx.fillStyle='#475569'; ctx.font='10px JetBrains Mono'; ctx.textAlign='right';
+    ctx.fillText((i*0.25).toFixed(2), pl-4, y+4);
+  }
+
+  const xMax = 1.2;
+  const xs = Array.from({length:200},(_,i)=>i/199*xMax);
+
+  ctx.strokeStyle='#00ff88'; ctx.lineWidth=2;
+  ctx.beginPath();
+  xs.forEach((x,i)=>{
+    const yv = Math.exp(-x);
+    const px = pl + (x/xMax)*cw;
+    const py = pt + ch - yv*ch;
+    i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+  });
+  ctx.stroke();
+
+  ctx.strokeStyle='#00d4ff'; ctx.lineWidth=2; ctx.setLineDash([6,3]);
+  ctx.beginPath();
+  xs.forEach((x,i)=>{
+    const yv = Math.max(0, 1-x);
+    const px = pl + (x/xMax)*cw;
+    const py = pt + ch - yv*ch;
+    i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+  });
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  if(currentX>0 && currentX<=xMax){
+    const px = pl + (currentX/xMax)*cw;
+    ctx.strokeStyle='#ff6b35'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(px,pt); ctx.lineTo(px,pt+ch); ctx.stroke();
+    ctx.fillStyle='#ff6b35'; ctx.font='bold 11px JetBrains Mono'; ctx.textAlign='center';
+    ctx.fillText(`x=${currentX.toFixed(3)}`, px, pt-5);
+  }
+
+  ctx.font='10px JetBrains Mono'; ctx.textAlign='left';
+  ctx.fillStyle='#00ff88'; ctx.fillRect(pl+5,pt+5,16,3);
+  ctx.fillText('e^(−x) exacto', pl+25, pt+10);
+  ctx.fillStyle='#00d4ff';
+  ctx.setLineDash([6,3]); ctx.strokeStyle='#00d4ff'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(pl+5,pt+20); ctx.lineTo(pl+21,pt+20); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillText('1−x aprox.', pl+25, pt+23);
+
+  ctx.fillStyle='#475569'; ctx.textAlign='center';
+  for(let i=0;i<=4;i++){
+    const x = i*0.3;
+    ctx.fillText(x.toFixed(1), pl+(x/xMax)*cw, pt+ch+14);
+  }
+  ctx.fillText('x = 2αL', pl+cw/2, h-3);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SWEEP
+// ═══════════════════════════════════════════════════════════════
+function updateSweepUI(){
+  const v = document.getElementById('sw-var').value;
+  if(v==='L'){ document.getElementById('sw-from').value=1; document.getElementById('sw-to').value=30; }
+  else        { document.getElementById('sw-from').value=80; document.getElementById('sw-to').value=99.9; }
+}
+
+function runSweep(){
+  const vari  = document.getElementById('sw-var').value;
+  const from  = parseFloat(document.getElementById('sw-from').value);
+  const to    = parseFloat(document.getElementById('sw-to').value);
+  const pts   = parseInt(document.getElementById('sw-pts').value);
+  const L0    = parseFloat(document.getElementById('inp-L').value);
+  const R1f   = parseFloat(document.getElementById('inp-R1').value)/100;
+  const R2f   = parseFloat(document.getElementById('inp-R2').value)/100;
+  const loss  = parseFloat(document.getElementById('inp-loss').value);
+
+  const xs=[], ys=[], errs=[];
+  for(let i=0;i<pts;i++){
+    const v = from + (to-from)*i/(pts-1);
+    let L=L0, R1=R1f, R2=R2f;
+    if(vari==='L') L=v;
+    else if(vari==='R1') R1=v/100;
+    else R2=v/100;
+
+    const res = calcThreshold(L, R1, R2, loss);
+    xs.push(v);
+    ys.push(res.approxAlpha);
+    errs.push(res.relErr);
+  }
+
+  drawSweepPlot(xs, ys, errs, vari);
+  buildSweepTable(xs, ys, errs, vari);
+}
+
+function drawSweepPlot(xs, ys, errs, vari){
+  const canvas = document.getElementById('sweep-canvas');
+  const ctx    = canvas.getContext('2d');
+  const W = canvas.offsetWidth || 800;
+  canvas.width  = W * devicePixelRatio;
+  canvas.height = 320 * devicePixelRatio;
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+  const w=W, h=320;
+  const pl=70,pr=70,pt=30,pb=50;
+  const cw=w-pl-pr, ch=h-pt-pb;
+
+  ctx.fillStyle='#111827'; ctx.fillRect(0,0,w,h);
+
+  const yMin=Math.min(...ys), yMax=Math.max(...ys);
+  const xMin=xs[0], xMax=xs[xs.length-1];
+  const yR = yMax-yMin||1e-10;
+
+  const toX = x=>(pl+(x-xMin)/(xMax-xMin||1)*cw);
+  const toY = y=>(pt+ch-(y-yMin)/yR*ch);
+
+  for(let i=0;i<=4;i++){
+    const y=pt+ch*(1-i/4);
+    ctx.strokeStyle='rgba(31,48,80,.6)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(pl,y); ctx.lineTo(pl+cw,y); ctx.stroke();
+    const yv=(yMin+yR*i/4);
+    ctx.fillStyle='#475569'; ctx.font='10px JetBrains Mono'; ctx.textAlign='right';
+    ctx.fillText(yv.toExponential(2), pl-5, y+4);
+  }
+
+  ctx.strokeStyle='#00d4ff'; ctx.lineWidth=2;
+  ctx.beginPath();
+  xs.forEach((x,i)=>{
+    const px=toX(x), py=toY(ys[i]);
+    i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+  });
+  ctx.stroke();
+
+  const errMax=Math.max(...errs,0.01);
+  ctx.strokeStyle='#ff6b3599'; ctx.lineWidth=1.5; ctx.setLineDash([4,3]);
+  ctx.beginPath();
+  xs.forEach((x,i)=>{
+    const px=toX(x), py=pt+ch-(errs[i]/errMax)*ch;
+    i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+  });
+  ctx.stroke(); ctx.setLineDash([]);
+
+  ctx.strokeStyle='#334155'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(pl,pt); ctx.lineTo(pl,pt+ch); ctx.lineTo(pl+cw,pt+ch); ctx.stroke();
+
+  const ticks=5;
+  for(let i=0;i<=ticks;i++){
+    const x=xMin+(xMax-xMin)*i/ticks;
+    const px=toX(x);
+    ctx.fillStyle='#475569'; ctx.font='10px JetBrains Mono'; ctx.textAlign='center';
+    ctx.fillText(x.toFixed(1), px, pt+ch+16);
+  }
+
+  const xlabel = vari==='L'?'L (cm)':`R${vari==='R1'?'₁':'₂'} (%)`;
+  ctx.fillStyle='#64748b'; ctx.font='11px JetBrains Mono'; ctx.textAlign='center';
+  ctx.fillText(xlabel, pl+cw/2, h-4);
+
+  ctx.save(); ctx.translate(14, pt+ch/2); ctx.rotate(-Math.PI/2);
+  ctx.fillStyle='#00d4ff'; ctx.font='11px JetBrains Mono'; ctx.textAlign='center';
+  ctx.fillText('αc (cm⁻¹)', 0, 0); ctx.restore();
+
+  ctx.save(); ctx.translate(w-12, pt+ch/2); ctx.rotate(-Math.PI/2);
+  ctx.fillStyle='#ff6b35'; ctx.font='11px JetBrains Mono'; ctx.textAlign='center';
+  ctx.fillText('Error %', 0, 0); ctx.restore();
+
+  ctx.strokeStyle='#00d4ff'; ctx.lineWidth=2; ctx.textAlign='left';
+  ctx.beginPath(); ctx.moveTo(pl+10,pt+12); ctx.lineTo(pl+30,pt+12); ctx.stroke();
+  ctx.fillStyle='#00d4ff'; ctx.font='10px JetBrains Mono';
+  ctx.fillText('αc', pl+34, pt+16);
+
+  ctx.strokeStyle='#ff6b3599'; ctx.lineWidth=1.5; ctx.setLineDash([4,3]);
+  ctx.beginPath(); ctx.moveTo(pl+10,pt+28); ctx.lineTo(pl+30,pt+28); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='#ff6b35';
+  ctx.fillText('Error%', pl+34, pt+32);
+}
+
+function buildSweepTable(xs, ys, errs, vari){
+  const tbody = document.getElementById('sweep-tbody');
+  const varLabel = vari==='L'?'L (cm)':'R'+vari.slice(1)+' (%)';
+  document.getElementById('sw-th-var').textContent = varLabel;
+  tbody.innerHTML = xs.map((x,i)=>{
+    const cls = errs[i]<0.5 ? 'tag-ok' : errs[i]<5 ? 'tag-warn' : 'tag-err';
+    const tag = errs[i]<0.5 ? '✓ OK' : errs[i]<5 ? '⚠ Marginal' : '✗ Invalid';
+    return `<tr>
+      <td>${x.toFixed(2)}</td>
+      <td>${ys[i].toExponential(4)}</td>
+      <td>${errs[i].toFixed(3)}</td>
+      <td class="${cls}">${tag}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SERIES PANEL
+// ═══════════════════════════════════════════════════════════════
+function calcSeries(){
+  const alpha  = parseFloat(document.getElementById('ser-alpha').value);
+  const L      = parseFloat(document.getElementById('ser-L').value);
+  const nTerms = parseInt(document.getElementById('ser-terms').value);
+  const x      = 2 * alpha * L;
+  const exact  = Math.exp(-x);
+
+  const tbody = document.getElementById('series-tbody');
+  let partial = 0;
+  const rows  = [];
+  let factorial = 1;
+  for(let n=0; n<nTerms; n++){
+    if(n>0) factorial *= n;
+    const term = Math.pow(-x, n) / factorial;
+    partial += term;
+    const err = Math.abs(partial - exact) / Math.abs(exact) * 100;
+    rows.push({ n, term, partial, exact, err });
+  }
+
+  tbody.innerHTML = rows.map(r=>{
+    const cls = r.err < 0.1 ? 'tag-ok' : r.err < 5 ? 'tag-warn' : 'tag-err';
+    const isLinear = r.n === 1;
+    return `<tr${isLinear?' class="highlight-row"':''}>
+      <td>${r.n}</td>
+      <td>${r.term.toExponential(6)}</td>
+      <td>${r.partial.toFixed(8)}</td>
+      <td>${r.exact.toFixed(8)}</td>
+      <td class="${cls}">${r.err.toExponential(3)}%</td>
+    </tr>`;
+  }).join('');
+
+  drawSeriesPlot(rows, exact);
+}
+
+function drawSeriesPlot(rows, exact){
+  const canvas = document.getElementById('series-canvas');
+  const ctx    = canvas.getContext('2d');
+  const W = canvas.offsetWidth || 700;
+  canvas.width  = W * devicePixelRatio;
+  canvas.height = 240 * devicePixelRatio;
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+  const w=W, h=240;
+  const pl=70, pr=30, pt=30, pb=40;
+  const cw=w-pl-pr, ch=h-pt-pb;
+
+  ctx.fillStyle='#111827'; ctx.fillRect(0,0,w,h);
+
+  const errs = rows.map(r=>r.err);
+  const eMax = Math.max(...errs, 0.001);
+  const eMin = 0;
+
+  const toX = n=>(pl + n/(rows.length-1||1)*cw);
+  const toY = e=>(pt + ch - (e-eMin)/(eMax-eMin||1)*ch);
+
+  for(let i=0;i<=4;i++){
+    const y=pt+ch*(1-i/4);
+    ctx.strokeStyle='rgba(31,48,80,.5)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(pl,y); ctx.lineTo(pl+cw,y); ctx.stroke();
+    const v=eMin+(eMax-eMin)*i/4;
+    ctx.fillStyle='#475569'; ctx.font='10px JetBrains Mono'; ctx.textAlign='right';
+    ctx.fillText(v.toFixed(2)+'%', pl-5, y+4);
+  }
+
+  ctx.strokeStyle='#00d4ff'; ctx.lineWidth=2;
+  ctx.beginPath();
+  rows.forEach((r,i)=>{
+    const px=toX(i), py=toY(r.err);
+    i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+  });
+  ctx.stroke();
+
+  rows.forEach((r,i)=>{
+    const px=toX(i), py=toY(r.err);
+    const color = r.err<0.1?'#00ff88':r.err<5?'#ffd60a':'#ff4444';
+    ctx.fillStyle=color;
+    ctx.beginPath(); ctx.arc(px,py,5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#94a3b8'; ctx.font='10px JetBrains Mono'; ctx.textAlign='center';
+    ctx.fillText(`n=${r.n}`, px, pt+ch+16);
+  });
+
+  ctx.strokeStyle='#00ff8855'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+  const yExact=toY(0);
+  ctx.beginPath(); ctx.moveTo(pl,yExact); ctx.lineTo(pl+cw,yExact); ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.strokeStyle='#334155'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(pl,pt); ctx.lineTo(pl,pt+ch); ctx.lineTo(pl+cw,pt+ch); ctx.stroke();
+
+  ctx.fillStyle='#64748b'; ctx.font='11px JetBrains Mono'; ctx.textAlign='center';
+  ctx.fillText('Número de términos n', pl+cw/2, h-4);
+  ctx.save(); ctx.translate(16,pt+ch/2); ctx.rotate(-Math.PI/2);
+  ctx.fillText('Error %', 0, 0); ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  TABS
+// ═══════════════════════════════════════════════════════════════
+function openTab(name){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name === 'calc') {
+    calculate();
+    drawValidityPlot(parseFloat(document.getElementById('val-x').textContent)||0);
+  } else if(name === 'sweep') {
+    runSweep();
+  } else if(name === 'series') {
+    calcSeries();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════════
+window.addEventListener('load', ()=>{
+  applyTranslations();
+  calculate();
+  runSweep();
+  calcSeries();
+  window.addEventListener('resize', ()=>{
+    if(document.getElementById('panel-calc').classList.contains('active'))
+      drawValidityPlot(parseFloat(document.getElementById('val-x').textContent)||0);
+    if(document.getElementById('panel-sweep').classList.contains('active'))
+      runSweep();
+  });
+});
+</script>
+</body>
+</html>
