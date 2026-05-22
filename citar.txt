@@ -1,0 +1,8 @@
+@misc{Sasinka2025LaserGain,
+  author       = {De Santiago Sasinka, Darío Ricardo},
+  title        = {Aplicaciones de Series Numéricas en el Cálculo de Ganancia de Cavidades Láser para Procesos de Manufactura},
+  year         = {2025},
+  doi          = {10.13140/RG.2.2.29126.18241},
+  url          = {[https://doi.org/10.13140/RG.2.2.29126.18241](https://doi.org/10.13140/RG.2.2.29126.18241)},
+  institution  = {Universidad Tecnológica Nacional - Facultad Regional Córdoba}
+}
